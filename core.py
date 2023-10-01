@@ -3,7 +3,7 @@
 import psycopg2 as pg 
 import psycopg2.extras as ex
 import pandas as pd
-
+from .utils import timewrapper
 
 def get_connection(db_configs):
     conn = pg.connect(**db_configs)
@@ -124,7 +124,7 @@ class PyPostgreSql:
         if verbose:
             self.print_db_config()
             
-            
+    @timewrapper
     def select(self, query, n=-1, return_type='tuple'):
         """
         SELECT 수행
@@ -144,16 +144,7 @@ class PyPostgreSql:
         elif return_type == 'pandas':
             return pd.DataFrame(result, columns=colnames)
 
-    def commit(self, query, values=None):
-        """
-        CREATE, INSERT, DELETE, UPDATE... 관련 명령 수행
-
-        Args:
-            query (str): 쿼리(CREATE, INSERT, DELETE, UPDATE, ...)
-            values (tuple, optional): placeholder 형태로 명령 수행 시 값. Defaults to None.
-        """
-        commit_query(query, values=values, cur=self.cur, conn=self.conn)
-    
+    @timewrapper
     def insert(self, query, tuples=None, df=None):
         """
         tuple을 입력으로 하여 INSERT 수행
@@ -167,8 +158,18 @@ class PyPostgreSql:
             tuples = pandas2tuples(df)
             
         insert_from_tuples(query, tuples, cursor=self.cur, conn=self.conn)
-            
-            
+    
+    @timewrapper
+    def commit(self, query, values=None):
+        """
+        CREATE, INSERT, DELETE, UPDATE... 관련 명령 수행
+
+        Args:
+            query (str): 쿼리(CREATE, INSERT, DELETE, UPDATE, ...)
+            values (tuple, optional): placeholder 형태로 명령 수행 시 값. Defaults to None.
+        """
+        commit_query(query, values=values, cur=self.cur, conn=self.conn)
+    
     def print_db_config(self):
         """
         config 출력 함수
@@ -204,9 +205,10 @@ if __name__ == '__main__':
     pp = PyPostgreSql(db_configs)
     
     # simple test
-    print(pp.select('select school_2020 from district_2020 limit 3;'))
+    print('simple test')
+    print(pp.select('select school_2020 from district_2020 limit 3'))
     print(pp.select('select school_2020 from district_2020;', n=3))
-    
+    print('\n')
     
     # (1) Create table
     pp.commit('drop table if exists test_table')
