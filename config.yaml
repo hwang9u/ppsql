@@ -1,0 +1,5 @@
+host: "localhost"
+dbname: "analysis"
+user: 'postgres'
+password: '1234'
+port: '3524'

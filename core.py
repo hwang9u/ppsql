@@ -1,5 +1,5 @@
 # PPSQL: Python PostgreSQL
-
+import os
 import psycopg2 as pg 
 import psycopg2.extras as ex
 import pandas as pd
@@ -194,12 +194,24 @@ class PyPostgreSql:
 
 if __name__ == '__main__':
     # Define Configs for DB connection
-    DB_ADDRESS = "localhost"
-    DB_NAME = "analysis"
-    USER = 'postgres'
-    PASSWORD = '1234'
-    PORT = '3524'
-    db_configs = {'host': DB_ADDRESS, 'dbname': DB_NAME, 'user':USER, 'password': PASSWORD, 'port': PORT}
+    # DB_ADDRESS = "localhost"
+    # DB_NAME = "analysis"
+    # USER = 'postgres'
+    # PASSWORD = '1234'
+    # PORT = '3524'
+    # db_configs = {'host': DB_ADDRESS, 'dbname': DB_NAME, 'user':USER, 'password': PASSWORD, 'port': PORT}
+    
+    # From config.yaml
+    import yaml
+    try:
+        with open('config.yaml') as f:
+            db_configs =yaml.safe_load(f)
+    except:
+        with open('./ppsql/config.yaml') as f:
+            db_configs =yaml.safe_load(f)
+        
+    
+    print(db_configs)
     
     # PyPostgreSQL class
     pp = PyPostgreSql(db_configs)
