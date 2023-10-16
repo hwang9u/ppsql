@@ -3,6 +3,7 @@ import os
 import psycopg2 as pg 
 import psycopg2.extras as ex
 import pandas as pd
+import yaml
 from .utils import timewrapper
 
 def get_connection(db_configs):
@@ -111,14 +112,23 @@ class PyPostgreSql:
     """
     Python과 PostgreSQL 연동 클래스
     """
-    def __init__(self, config, verbose=True):
+    def __init__(self, config=None, verbose=True):
         """
         Args:
             config (dict): DB 연결을 위한 config
             verbose (bool, optional): config 출력 여부. Defaults to True.
         """
-        self.config = config
-        self.conn = pg.connect(**config)
+        self.config = config        
+        if isinstance(self.config, type(None)):
+            config_yaml = 'config.yaml'
+            try:
+                with open() as f:
+                    self.config =yaml.safe_load(f)
+            except:
+                with open('./ppsql/' + config_yaml) as f:
+                    self.config =yaml.safe_load(f) 
+        
+        self.conn = pg.connect(**self.config)
         self.cur = self.conn.cursor()
 
         if verbose:
@@ -203,11 +213,12 @@ if __name__ == '__main__':
     
     # From config.yaml
     import yaml
+    config_yaml = 'config.yaml'
     try:
-        with open('config.yaml') as f:
+        with open() as f:
             db_configs =yaml.safe_load(f)
     except:
-        with open('./ppsql/config.yaml') as f:
+        with open('./ppsql/' + config_yaml) as f:
             db_configs =yaml.safe_load(f)
         
     
