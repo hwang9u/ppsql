@@ -142,7 +142,7 @@ class PyPostgreSql:
         Args:
             query (str): 쿼리(SELECT)
             n (int, optional): 반환할 결과의 개수. Defaults to -1. 만약 -1이면 전체 결과 반환
-            return_type (str, optional): 반환 형태 'pandas'와 'tuple' 중 선택. Defaults to 'tuple'.
+            return_type (str, optional): 반환 형태 'df'와 'tuple' 중 선택. Defaults to 'tuple'.
 
         Returns:
             (pandas.DataFrame or list ): SELECT 수행 결과. return_type에 따라 반환 형태 결정
@@ -150,10 +150,33 @@ class PyPostgreSql:
         result,colnames = _select(query, self.cur, n)
         
         if return_type == 'tuple': 
+            print(result, colnames)
             return result, colnames
-        elif return_type == 'pandas':
-            return pd.DataFrame(result, columns=colnames)
-
+        elif return_type == 'df':
+            result = pd.DataFrame(result, columns=colnames)
+            print(result)
+            return result
+    
+    @timewrapper
+    def get_table_description(self, table, schema='public', **select_kwargs):
+        query = f"""
+        SELECT b.column_name, a.description
+        FROM ( select *
+            from pg_catalog.pg_description 
+            where objoid = ( SELECT oid 
+                                FROM pg_class 
+                                WHERE relname='{table}'
+                                AND relnamespace = ( SELECT oid FROM pg_catalog.pg_namespace WHERE nspname='{schema}' ) ) ) AS a
+        RIGHT JOIN (SELECT *
+                    FROM information_schema.columns
+                    WHERE table_schema='{schema}'
+                    AND table_name='{table}') b
+        ON a.objsubid = b.ordinal_position;
+        """
+        result = self.select(query= query, **select_kwargs)
+        return result
+    
+    
     @timewrapper
     def insert(self, query, tuples=None, df=None):
         """
@@ -241,26 +264,29 @@ if __name__ == '__main__':
     # (2) Insert Values
     # (2-1) SQL Query
     pp.commit("INSERT INTO test_table (id, name) VALUES (1, 'a'), (2, 'b')")
-    print(pp.select('select * from test_table'))
+    pp.select('select * from test_table')
 
     # (2-2) Using Pandas Data frame
     test_df = pd.DataFrame({'id': [4, 10], 'name': ['황구', '빡구'], 'age': [25,26]}) # data frame type input
     pp.insert(query='INSERT INTO test_table VALUES %s', df = test_df)
-    print(pp.select('select * from test_table', return_type='pandas'))
+    pp.select('select * from test_table', return_type='df')
     
     test_tuple = [(11, 'mang')] # tuple type input
     pp.insert(query='INSERT INTO test_table (id, name) VALUES %s', tuples=test_tuple)
-    print(pp.select('select * from test_table', return_type='pandas'))
+    pp.select('select * from test_table', return_type='df')
     
     # (3) Delete
     print('After deletion')
     pp.commit("DELETE FROM test_table WHERE id=1")
-    print(pp.select('select * from test_table', return_type='pandas'))
+    pp.select('select * from test_table', return_type='df')
     
     # (4) Update
     # pp.commit("UPDATE test_table set name='망' WHERE name='mang' ") # query type
     pp.commit("UPDATE test_table set name=%s WHERE name=%s", ('망', 'mang') )
-    print(pp.select('select * from test_table', return_type='pandas'))
+    pp.select('select * from test_table', return_type='df')
     
-    # (5) close connection
+    # (5) Get table description
+    pp.get_table_description(table='test_table', schema='public', return_type='df')
+    
+    # (6) close connection
     pp.close_conn()
